@@ -1,4 +1,4 @@
-import { getTronWeb, TRONGRID_BASE, USDT_CONTRACT } from "./tron";
+import { getTronWeb, TRONGRID_BASE, USDT_CONTRACT, trongridHeaders } from "./tron";
 import { lookupBlacklist } from "./blacklist";
 import type { LinkedRisk, TransferProfile } from "./types";
 
@@ -21,7 +21,7 @@ async function fetchJson<T>(url: string): Promise<T> {
   try {
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { accept: "application/json" },
+      headers: trongridHeaders(),
     });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);

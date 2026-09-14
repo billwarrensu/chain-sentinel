@@ -1,7 +1,7 @@
 // OFAC SDN 名单中被标记的 TRON 地址（字段 "Digital Currency Address - TRX"）。
 // 来源：美国财政部 OFAC 公开 SDN 名单 https://www.treasury.gov/ofac/downloads/sdn.csv
-// 抓取后经链上校验：地址全部合法，抽样确认其 USDT 已被 Tether 冻结。
-// 本文件为种子快照，名单会更新，生产环境应定期从官方源同步。
+// 本文件由 scripts/sync-sdn.mjs 自动生成，请勿手工编辑；更新请运行 `pnpm sync:sdn`。
+// 抓取后经链上校验：地址全部为合法波场地址。
 
 export const SDN_TRON_ADDRESSES: string[] = [
   "TASWbk6X1wiTku5TMmMQYqYFvshVEtfJy8",

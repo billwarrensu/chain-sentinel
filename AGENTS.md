@@ -112,3 +112,21 @@ scripts/sdn_tron.txt                # OFAC 波场地址源数据
 - 必须显著展示免责声明：结果仅供参考、数据有滞后、不构成法律/合规结论、不承诺"永不冻结"。
 - 测试：改评分逻辑后，用「币安热钱包（高周转）」「OFAC 制裁地址（高危）」「制裁地址的交易对手（关联牵连）」三类真实地址回归。
 
+## 自建 / 生产部署（国外服务器）
+- 运行环境：Node 24（最低 20.9+）、pnpm 9；无需数据库，唯一外部依赖是出网访问 `api.trongrid.io`。
+- 标准构建/启动（非沙箱环境用这两个，不要用 coze 包装脚本）：
+  - 构建：`pnpm install --frozen-lockfile && pnpm next:build`（脚本为 `next build --webpack`，Next 16 默认 Turbopack，本项目有 webpack 自定义，必须带 `--webpack`）。
+  - 启动：`HOSTNAME=0.0.0.0 PORT=5000 pnpm next:start`（必须绑 `0.0.0.0` 外网才可达）。
+- 环境变量：
+  - `TRONGRID_API_KEY`（可选）：在 `src/lib/risk/tron.ts` 统一读取，TronWeb 与原生 fetch 都带 `TRON-PRO-API-KEY` 头；不配则走免费公共节点（有限流）。
+  - `SDN_SOURCE_URL`（可选）：同步脚本的数据源覆盖。
+- 容器化：`Dockerfile`（多阶段，node:24-bookworm-slim，非 root，含 healthcheck）+ `docker-compose.yml`（仅绑定 `127.0.0.1:5000`，由 Nginx 转发）。构建：`docker compose build`，运行：`docker compose up -d`。
+- 反向代理：`deploy/nginx/chain-sentinel.conf`，配合 `certbot --nginx` 上 HTTPS；`proxy_read_timeout` 已放大到 40s（查询串行调用多个外部接口）。
+
+## OFAC 名单运维
+- 同步脚本：`scripts/sync-sdn.ts`，命令 `pnpm sync:sdn`（用 tsx 运行）。
+- 行为：下载官方 SDN CSV → 正则提取 `Digital Currency Address - TRX` 地址 → tronweb 校验合法性 → 去重排序 → 重写 `src/lib/risk/sdn-data.ts` 与 `scripts/sdn_tron.txt`；提取为 0 时中止不覆盖；数量较上次波动 >50% 打印告警。
+- 服务器定时更新（cron，每天一次）：
+  `0 4 * * * cd /opt/sentinel && pnpm sync:sdn >> /var/log/sdn-sync.log 2>&1 && docker compose restart sentinel`
+- `sdn-data.ts` 为自动生成文件，禁止手工编辑。
+
