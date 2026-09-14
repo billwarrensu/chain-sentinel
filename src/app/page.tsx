@@ -1,35 +1,47 @@
-import type { Metadata } from 'next';
-import Image from 'next/image';
-
-export const metadata: Metadata = {
-  title: '扣子编程 - AI 开发伙伴',
-  description: '扣子编程，你的 AI 开发伙伴已就位',
-};
+import { RiskChecker } from "@/components/risk-checker";
+import { Radar } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="flex h-full items-center justify-center bg-background text-foreground transition-colors duration-300 dark:bg-background dark:text-foreground overflow-hidden min-h-screen">
-      {/* 主容器 */}
-      <main className="flex w-full h-full max-w-3xl flex-col items-center justify-center px-16 py-32 sm:items-center">
-        <div className="flex flex-col items-center justify-between gap-4">
-           <Image
-            src="https://lf-coze-web-cdn.coze.cn/obj/eden-cn/lm-lgvj/ljhwZthlaukjlkulzlp/coze-coding/icon/coze-coding.gif"
-            alt="扣子编程 Logo"
-            width={156}
-            height={130}
-          />
+    <main className="risk-terminal min-h-screen text-[#e6e9f0]">
+      <div className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-10 sm:px-6 sm:py-16">
+        {/* 品牌 */}
+        <header className="mb-10 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#38bdf844] bg-[#38bdf814]">
+            <Radar className="h-5 w-5 text-[#38bdf8]" />
+          </div>
           <div>
-            <div className="flex flex-col items-center gap-2 text-center sm:items-center sm:text-center">
-              <h1 className="max-w-xl text-base font-semibold leading-tight tracking-tight text-foreground dark:text-foreground">
-                应用开发中
-              </h1>
-              <p className="max-w-2xl text-sm leading-8 text-muted-foreground dark:text-muted-foreground">
-                请稍后，页面即将呈现
-              </p>
+            <div className="text-base font-semibold tracking-wide">
+              链上哨兵
+            </div>
+            <div className="text-xs text-[#6b7385]">
+              TRON USDT 地址风险核验
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </header>
+
+        {/* 价值说明 */}
+        <section className="mb-8">
+          <h1 className="text-2xl font-semibold leading-snug sm:text-3xl">
+            转账前，先看清对方地址干不干净
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#9aa2b5]">
+            输入对方的波场
+            <span className="font-mono-risk text-[#c2c8d6]"> TRC20-USDT </span>
+            地址，工具会实时核验
+            <span className="text-[#e6e9f0]"> Tether 官方冻结状态</span>、比对
+            <span className="text-[#e6e9f0]"> OFAC 制裁名单</span>
+            ，并分析该地址近期是否与涉黑/制裁地址有直接资金往来，给出可解释的风险等级。
+          </p>
+        </section>
+
+        {/* 查询主体 */}
+        <RiskChecker />
+
+        <footer className="mt-auto pt-12 text-center text-xs text-[#4b5264]">
+          数据来源：TronGrid 公共节点 · Tether USD 合约 · OFAC SDN List
+        </footer>
+      </div>
+    </main>
   );
 }

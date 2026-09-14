@@ -63,3 +63,52 @@
 
 - 模板默认预装核心组件库 `shadcn/ui`，位于`src/components/ui/`目录下
 - Next.js 项目**必须默认**采用 shadcn/ui 组件、风格和规范，**除非用户指定用其他的组件和规范。**
+
+---
+
+# 业务模块：链上哨兵（波场 USDT 地址风险查询）
+
+## 产品概述
+输入一个波场 TRC20-USDT 地址，实时核验其风险并输出可解释的风险报告，帮助用户在转账前规避被冻结/涉黑牵连风险。
+
+## 核心架构
+```
+src/
+├── app/
+│   ├── page.tsx                    # 首页（查询入口，深色安全终端风）
+│   └── api/risk/route.ts           # GET /api/risk?address= 风险查询接口
+├── components/
+│   ├── risk-checker.tsx            # 输入框 + 分步扫描加载态 + 状态管理
+│   ├── risk-report.tsx             # 风险报告（总览/检查项/画像/关联地址/免责）
+│   └── score-ring.tsx              # 风险评分环形仪表（0-100 数字滚动）
+└── lib/risk/
+    ├── types.ts                    # 领域类型（RiskReport/CheckItem/LinkedRisk 等）
+    ├── tron.ts                     # 常量、TronWeb 单例、地址合法性校验
+    ├── sdn-data.ts                 # OFAC SDN 波场地址快照（78 个，自动生成勿手改）
+    ├── blacklist.ts               # 黑名单索引与分类标签
+    ├── tron-data.ts                # 链上数据层（冻结/余额/账户/转账/关联聚合）
+    └── score.ts                    # 风险评分引擎（权重累加 + 等级判定）
+scripts/sdn_tron.txt                # OFAC 波场地址源数据
+```
+
+## 数据源（均为真实调用，禁止 Mock）
+- **TronGrid 公共节点** `https://api.trongrid.io`：账户信息、TRC20 转账记录（免费、无需 key，有限流）。
+- **USDT 合约** `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t`，通过 `tronweb` 调用：
+  - `isBlackListed(address)` → Tether 官方实时冻结状态。
+  - `balanceOf(address)` → USDT 余额（decimals=6）。
+- **OFAC SDN 名单**：种子快照来自 `https://www.treasury.gov/ofac/downloads/sdn.csv` 中字段 `Digital Currency Address - TRX`，已链上校验合法且抽样确认被 Tether 冻结。生产环境应定期重新抓取同步。
+
+## 风险评分规则（src/lib/risk/score.ts）
+- 权重累加后截断 100：本人被冻结 +100、本人命中 OFAC +95、关联制裁地址 +60（每个额外对手 +12）、新账户 +20、高周转 +15、过账特征 +15、无 USDT 历史 +10。
+- 等级阈值：`>=70` high，`>=30` medium，其余 low。
+- 关联分析基于近期最多 200 笔 USDT 转账的一跳对手（免费 API 取样上限）。
+
+## API
+- `GET /api/risk?address=<T...>`：非法地址返回 400；链上异常返回 502；成功返回完整 `RiskReport`（`runtime=nodejs`，`force-dynamic`）。
+
+## 关键注意事项
+- 依赖 `tronweb`（非 shadcn 自带），地址 ABI 编码必须用 tronWeb，禁止手拼 hex。
+- 前端动态时间（queriedAt）仅在接口返回后渲染，避免 hydration 问题。
+- 必须显著展示免责声明：结果仅供参考、数据有滞后、不构成法律/合规结论、不承诺"永不冻结"。
+- 测试：改评分逻辑后，用「币安热钱包（高周转）」「OFAC 制裁地址（高危）」「制裁地址的交易对手（关联牵连）」三类真实地址回归。
+

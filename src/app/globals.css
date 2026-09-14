@@ -135,3 +135,63 @@
 body {
   @apply font-sans;
 }
+
+/* ===== 链上哨兵：安全终端深色主题 ===== */
+:root {
+  --risk-bg: #0a0b0f;
+  --risk-card: #12141b;
+  --risk-border: #1f2430;
+  --risk-high: #f4494e;
+  --risk-medium: #f5a623;
+  --risk-low: #2ecc8f;
+  --risk-cyan: #38bdf8;
+  --foreground: #e6e9f0;
+}
+
+.risk-terminal {
+  background-color: var(--risk-bg);
+  background-image:
+    radial-gradient(circle at 50% -10%, rgba(56, 189, 248, 0.08), transparent 55%),
+    linear-gradient(rgba(31, 36, 48, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 36, 48, 0.35) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    44px 44px,
+    44px 44px;
+}
+
+.font-mono-risk {
+  font-family:
+    ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, Consolas,
+    monospace;
+}
+
+@keyframes scan-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-scan-in {
+  animation: scan-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes score-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-score-pop {
+  animation: score-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
