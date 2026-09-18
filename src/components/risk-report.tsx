@@ -8,6 +8,8 @@ import {
   CheckCircle2,
   Info,
   ShieldAlert,
+  ShieldCheck,
+  Share2,
   ExternalLink,
   Copy,
   Check,
@@ -20,6 +22,7 @@ import type {
   TransferProfile,
 } from "@/lib/risk/types";
 import { ScoreRing } from "./score-ring";
+import { AddressGraph } from "./address-graph";
 
 const LEVEL_META: Record<
   RiskLevel,
@@ -87,6 +90,7 @@ export function RiskReportView({
   report: import("@/lib/risk/types").RiskReport;
 }) {
   const meta = LEVEL_META[report.level];
+  const [tab, setTab] = useState<"report" | "graph">("report");
 
   return (
     <div className="animate-scan-in space-y-4">
@@ -122,52 +126,88 @@ export function RiskReportView({
         </div>
       </div>
 
-      {/* 检查项明细 */}
-      <Section title="风险检查项">
-        <ul className="divide-y divide-[#1f2430]">
-          {report.checks.map((item) => (
-            <CheckRow key={item.id} item={item} />
-          ))}
-        </ul>
-      </Section>
-
-      {/* 链上画像 */}
-      {report.profile && (
-        <Section title="链上画像">
-          <ProfileGrid profile={report.profile} />
-        </Section>
-      )}
-
-      {/* 关联风险地址 */}
-      {report.linkedRisks.length > 0 && (
-        <Section title={`关联风险地址（${report.linkedRisks.length}）`}>
-          <ul className="space-y-2">
-            {report.linkedRisks.map((r) => (
-              <LinkedRow key={r.address} risk={r} />
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {/* 外链 + 免责 */}
-      <div className="flex items-center justify-between gap-4">
-        <a
-          href={report.tronscanUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs text-[#38bdf8] hover:underline"
+      {/* 功能 Tab 切换 */}
+      <div className="flex gap-1 rounded-xl border border-[#1f2430] bg-[#0e1016] p-1">
+        <button
+          type="button"
+          onClick={() => setTab("report")}
+          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+            tab === "report"
+              ? "bg-[#1f2430] text-[#e6e9f0]"
+              : "text-[#8b93a7] hover:text-[#e6e9f0]"
+          }`}
         >
-          在 TronScan 查看完整链上记录
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
-        <span className="text-xs text-[#5c6478]">
-          查询时间 {new Date(report.queriedAt).toLocaleString("zh-CN")}
-        </span>
+          <ShieldCheck className="h-4 w-4" />
+          地址安全体检
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("graph")}
+          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+            tab === "graph"
+              ? "bg-[#1f2430] text-[#e6e9f0]"
+              : "text-[#8b93a7] hover:text-[#e6e9f0]"
+          }`}
+        >
+          <Share2 className="h-4 w-4" />
+          地址关系图谱
+        </button>
       </div>
+
+      {tab === "report" ? (
+        <>
+          {/* 检查项明细 */}
+          <Section title="风险检查项">
+            <ul className="divide-y divide-[#1f2430]">
+              {report.checks.map((item) => (
+                <CheckRow key={item.id} item={item} />
+              ))}
+            </ul>
+          </Section>
+
+          {/* 链上画像 */}
+          {report.profile && (
+            <Section title="链上画像">
+              <ProfileGrid profile={report.profile} />
+            </Section>
+          )}
+
+          {/* 关联风险地址 */}
+          {report.linkedRisks.length > 0 && (
+            <Section title={`关联风险地址（${report.linkedRisks.length}）`}>
+              <ul className="space-y-2">
+                {report.linkedRisks.map((r) => (
+                  <LinkedRow key={r.address} risk={r} />
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {/* 外链 */}
+          <div className="flex items-center justify-between gap-4">
+            <a
+              href={report.tronscanUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-[#38bdf8] hover:underline"
+            >
+              在 TronScan 查看完整链上记录
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            <span className="text-xs text-[#5c6478]">
+              查询时间 {new Date(report.queriedAt).toLocaleString("zh-CN")}
+            </span>
+          </div>
+        </>
+      ) : (
+        // 地址关系图谱
+        <AddressGraph address={report.address} relations={report.relations ?? []} />
+      )}
 
       <p className="rounded-xl border border-[#1f2430] bg-[#0e1016] px-4 py-3 text-xs leading-relaxed text-[#6b7385]">
         免责声明：本结果基于 Tether 合约公开状态、OFAC 公开制裁名单与近期链上交易自动分析，
         仅供风险参考，不构成任何法律、合规或投资建议，也不代表「绝对安全」或「永不冻结」的承诺。
+        关系图谱中的实体标签为公开信息整理，仅供识别参考，不代表对应实体本身安全或合规。
         链上标记具有滞后性，对手方付款银行卡是否涉案等链下信息无法通过本工具获知。请结合正规渠道与对手尽调综合判断。
       </p>
     </div>

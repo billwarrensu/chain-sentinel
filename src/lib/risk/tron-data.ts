@@ -1,10 +1,11 @@
 import { getTronWeb, TRONGRID_BASE, USDT_CONTRACT, trongridHeaders } from "./tron";
 import { lookupBlacklist } from "./blacklist";
-import type { LinkedRisk, TransferProfile } from "./types";
+import { lookupEntity } from "./known-entities";
+import type { LinkedRisk, RelationEdge, TransferProfile } from "./types";
 
 const USDT_DECIMALS = 6;
-const SAMPLE_LIMIT = 200; // 免费 API 单次最多取 200 条做关联分析
-const REQUEST_TIMEOUT = 12000;
+const SAMPLE_LIMIT = 400; // 取样范围：拉取最多 400 笔 USDT-TRC20 转账做画像与关系分析
+const REQUEST_TIMEOUT = 15000;
 
 interface Trc20Record {
   transaction_id: string;
@@ -101,7 +102,7 @@ export function buildProfileAndLinks(
   trxBalance: string,
   usdtBalance: string,
   account: AccountData | null,
-): { profile: TransferProfile; linkedRisks: LinkedRisk[] } {
+): { profile: TransferProfile; linkedRisks: LinkedRisk[]; relations: RelationEdge[] } {
   const target = address.trim();
   const counterparties = new Map<
     string,
@@ -195,7 +196,35 @@ export function buildProfileAndLinks(
   }
   linkedRisks.sort((a, b) => b.transferCount - a.transferCount);
 
-  return { profile, linkedRisks };
+  // 完整对手方关系（供关系图谱）：覆盖所有对手方，而不只是黑名单命中
+  const totalFlow = totalInflow + totalOutflow;
+  const relations: RelationEdge[] = [];
+  for (const [cp, agg] of counterparties) {
+    const hit = lookupBlacklist(cp);
+    const entity = lookupEntity(cp);
+    const direction: "in" | "out" | "both" =
+      agg.direction.size === 2 ? "both" : agg.direction.has("in") ? "in" : "out";
+    // 低频小额对手记为噪音，前端默认折叠，避免图谱被零散空投/话费充值刷屏
+    const noise = agg.count <= 3 && agg.amount < 100 && !hit && !entity;
+    relations.push({
+      address: cp,
+      direction,
+      transferCount: agg.count,
+      totalAmount: round2(agg.amount),
+      lastTransferAt: agg.last,
+      isBlacklisted: !!hit,
+      category: hit?.category,
+      blacklistLabel: hit?.label,
+      tag: entity?.tag,
+      tagName: entity?.name,
+      noise,
+      pctOfFlow: totalFlow > 0 ? round2((agg.amount / totalFlow) * 100) : 0,
+    });
+  }
+  // 按交互金额降序：核心对手优先
+  relations.sort((a, b) => b.totalAmount - a.totalAmount);
+
+  return { profile, linkedRisks, relations };
 }
 
 function round2(n: number): number {
@@ -205,6 +234,7 @@ function round2(n: number): number {
 export interface OnChainResult {
   profile: TransferProfile;
   linkedRisks: LinkedRisk[];
+  relations: RelationEdge[];
   tetherFrozen: boolean;
   dataComplete: boolean;
 }
@@ -224,7 +254,7 @@ export async function analyzeOnChain(address: string): Promise<OnChainResult> {
       })
     : "0";
 
-  const { profile, linkedRisks } = buildProfileAndLinks(
+  const { profile, linkedRisks, relations } = buildProfileAndLinks(
     address,
     records,
     trxBalance,
@@ -235,6 +265,7 @@ export async function analyzeOnChain(address: string): Promise<OnChainResult> {
   return {
     profile,
     linkedRisks,
+    relations,
     tetherFrozen: frozen,
     dataComplete: account !== null,
   };

@@ -183,6 +183,7 @@ export function buildReport(
     checks,
     profile: p,
     linkedRisks: sanctions,
+    relations: onchain.relations,
     tetherFrozen: onchain.tetherFrozen,
     tronscanUrl: tronscanUrl(address),
     dataComplete: onchain.dataComplete,

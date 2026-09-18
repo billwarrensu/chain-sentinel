@@ -57,6 +57,24 @@ export interface LinkedRisk {
   lastTransferAt: number | null;
 }
 
+// 关系图谱中的单个交易对手（含完整对手方，不限于黑名单）
+export type EntityTag = "exchange" | "stableswap" | "contract" | "known";
+
+export interface RelationEdge {
+  address: string; // 对手方地址
+  direction: "in" | "out" | "both"; // 相对查询地址的方向
+  transferCount: number; // 交互笔数
+  totalAmount: number; // 交互金额（USDT）
+  lastTransferAt: number | null; // 最近一次交互时间（ms）
+  isBlacklisted: boolean; // 是否命中本地黑名单/制裁库
+  category?: BlacklistCategory; // 命中时的风险类别
+  blacklistLabel?: string; // 命中时的黑名单标注
+  tag?: EntityTag; // 已知实体标注（交易所/合约等）
+  tagName?: string; // 实体名称（如 Binance）
+  noise?: boolean; // 是否被判定为低频噪音对手（前端默认折叠）
+  pctOfFlow?: number; // 该对手占本地址总交易金额的比例（0-1）
+}
+
 // 一次查询的完整报告
 export interface RiskReport {
   address: string;
@@ -68,6 +86,7 @@ export interface RiskReport {
   checks: CheckItem[];
   profile: TransferProfile | null;
   linkedRisks: LinkedRisk[];
+  relations: RelationEdge[]; // 完整对手方关系（供关系图谱使用）
   tetherFrozen: boolean;
   tronscanUrl: string;
   dataComplete: boolean; // 链上数据是否完整取到（接口失败时为 false）
